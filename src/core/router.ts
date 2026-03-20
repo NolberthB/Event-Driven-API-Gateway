@@ -1,11 +1,7 @@
 import type { Event } from './event'
+import { getHandlers } from './registry'
 
-export function routeEvent(event: Event): string {
-    switch(event.type){
-        case "user.created":
-            return "logger"
-
-        default:
-            throw new Error(`No handler for event type: ${event.type}`)
-    }
+export async function routeEvent(event: Event): Promise<void> {
+    const handlers = getHandlers(event.type)
+    await Promise.all(handlers.map(h => h(event)))
 }

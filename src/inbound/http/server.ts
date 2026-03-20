@@ -1,24 +1,31 @@
 import { routeEvent } from "../../core/router"
 import type { Event } from "../../core/event"
-import { sendToLogger } from "../../outbound/logger.adapter"
 
 Bun.serve({
   port: 3000,
-  fetch(req) {
-    if (req.method !== "POST") {
-      return new Response("Only POST allowed", { status: 405 })
+  async fetch(req) {
+
+    const url = new URL(req.url)
+
+    if (req.method === "POST" && url.pathname === "/events") {
+      // Handle POST requests to /events
+      const event = await req.json() as Event
+      await routeEvent(event)
+      return new Response("Event received", { status: 202 })
     }
 
-    return req.json().then((event: Event) => {
-      const destination = routeEvent(event)
+    if (req.method === "GET" && url.pathname === "/events") {
+      // Handle GET requests to /event
+      return Response.json({
+        supportedEvents: ["user.created", "audit.log"]
+      })
+    }
 
-      if (destination === "logger") {
-        sendToLogger(event)
-      }
-
-      return new Response("Event received")
-    })
-  },
+    return Response.json(
+      { error: "Route not found" },
+      { status: 404 }
+    )
+  }
 })
 
-console.log("API Gateway listening on http://localhost:3000")
+console.log("API Gateway listening on http://localhost:3000") 
